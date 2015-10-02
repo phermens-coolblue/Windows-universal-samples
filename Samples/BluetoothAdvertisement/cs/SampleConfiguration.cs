@@ -42,6 +42,16 @@ namespace SDKTemplate
                 Title = "Background publisher",
                 ClassType = typeof(Scenario4_BackgroundPublisher)
             },
+            new Scenario()
+            {
+                Title ="Background watcher (aggregating)",
+                ClassType = typeof(Scenario5_AggregatingWatcher)
+            },
+            new Scenario
+            {
+                Title = "Foreground watcher (aggregating)",
+                ClassType = typeof(Scenario6_ActiveAggregatingWatcher)
+            }
         };
     }
 

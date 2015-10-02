@@ -71,15 +71,15 @@ namespace BluetoothAdvertisement
             var manufacturerData = new BluetoothLEManufacturerData();
 
             // Then, set the company ID for the manufacturer data. Here we picked an unused value: 0xFFFE
-            manufacturerData.CompanyId = 0xFFFE;
+            manufacturerData.CompanyId = 76;
 
             // Finally set the data payload within the manufacturer-specific section
             // Here, use a 16-bit UUID: 0x1234 -> {0x34, 0x12} (little-endian)
-            DataWriter writer = new DataWriter();
-            writer.WriteUInt16(0x1234);
+            //DataWriter writer = new DataWriter();
+            //writer.WriteUInt16(0x1234);
 
             // Make sure that the buffer length can fit within an advertisement payload. Otherwise you will get an exception.
-            manufacturerData.Data = writer.DetachBuffer();
+            //manufacturerData.Data = writer.DetachBuffer();
 
             // Add the manufacturer data to the advertisement filter on the trigger:
             trigger.AdvertisementFilter.Advertisement.ManufacturerData.Add(manufacturerData);
@@ -90,20 +90,20 @@ namespace BluetoothAdvertisement
             // Please adjust these values if you cannot receive any advertisement 
             // Set the in-range threshold to -70dBm. This means advertisements with RSSI >= -70dBm 
             // will start to be considered "in-range".
-            trigger.SignalStrengthFilter.InRangeThresholdInDBm = -70;
+            //trigger.SignalStrengthFilter.InRangeThresholdInDBm = -70;
 
             // Set the out-of-range threshold to -75dBm (give some buffer). Used in conjunction with OutOfRangeTimeout
             // to determine when an advertisement is no longer considered "in-range"
-            trigger.SignalStrengthFilter.OutOfRangeThresholdInDBm = -75;
+            //trigger.SignalStrengthFilter.OutOfRangeThresholdInDBm = -80;
 
             // Set the out-of-range timeout to be 2 seconds. Used in conjunction with OutOfRangeThresholdInDBm
             // to determine when an advertisement is no longer considered "in-range"
-            trigger.SignalStrengthFilter.OutOfRangeTimeout = TimeSpan.FromMilliseconds(2000);
+            //trigger.SignalStrengthFilter.OutOfRangeTimeout = TimeSpan.FromMilliseconds(2000);
 
             // By default, the sampling interval is set to be disabled, or the maximum sampling interval supported.
             // The sampling interval set to MaxSamplingInterval indicates that the event will only trigger once after it comes into range.
             // Here, set the sampling period to 1 second, which is the minimum supported for background.
-            trigger.SignalStrengthFilter.SamplingInterval = TimeSpan.FromMilliseconds(1000);
+            //trigger.SignalStrengthFilter.SamplingInterval = TimeSpan.FromMilliseconds(1000);
         }
 
         /// <summary>

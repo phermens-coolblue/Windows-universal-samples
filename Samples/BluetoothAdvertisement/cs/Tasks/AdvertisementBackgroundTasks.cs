@@ -1,25 +1,13 @@
-﻿//*********************************************************
-//
-// Copyright (c) Microsoft. All rights reserved.
-// This code is licensed under the MIT License (MIT).
-// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
-// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
-// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
-//
-//*********************************************************
-
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+
 using Windows.ApplicationModel.Background;
-using Windows.Devices.Bluetooth;
-using Windows.Devices.Bluetooth.Background;
 using Windows.Devices.Bluetooth.Advertisement;
+using Windows.Devices.Bluetooth.Background;
 using Windows.Storage;
 using Windows.Storage.Streams;
+
+using BeaconTracker.Models;
 
 namespace BackgroundTasks
 {
@@ -38,7 +26,7 @@ namespace BackgroundTasks
 
             var details = taskInstance.TriggerDetails as BluetoothLEAdvertisementWatcherTriggerDetails;
 
-            if (details != null)
+            if(details != null)
             {
                 // If the background watcher stopped unexpectedly, an error will be available here.
                 var error = details.Error;
@@ -54,47 +42,41 @@ namespace BackgroundTasks
 
                 // In this example, the background task simply constructs a message communicated
                 // to the App. For more interesting applications, a notification can be sent from here instead.
-                string eventMessage = "";
-                eventMessage += string.Format("ErrorStatus: {0}, EventCount: {1}, HighDBm: {2}, LowDBm: {3}, Timeout: {4}, Sampling: {5}",
-                    error.ToString(),
-                    advertisements.Count.ToString(),
-                    rssiFilter.InRangeThresholdInDBm.ToString(),
-                    rssiFilter.OutOfRangeThresholdInDBm.ToString(),
-                    rssiFilter.OutOfRangeTimeout.GetValueOrDefault().TotalMilliseconds.ToString(),
-                    rssiFilter.SamplingInterval.GetValueOrDefault().TotalMilliseconds.ToString());
+                var eventMessage = $"ErrorStatus: {error}, " +
+                                   $"EventCount: {advertisements.Count}, " +
+                                   $"HighDBm: {rssiFilter.InRangeThresholdInDBm}, " +
+                                   $"LowDBm: {rssiFilter.OutOfRangeThresholdInDBm}, " +
+                                   $"Timeout: {rssiFilter.OutOfRangeTimeout.GetValueOrDefault().TotalMilliseconds}, " +
+                                   $"Sampling: {rssiFilter.SamplingInterval.GetValueOrDefault().TotalMilliseconds}";
 
                 // Advertisements can contain multiple events that were aggregated, each represented by 
                 // a BluetoothLEAdvertisementReceivedEventArgs object.
-                foreach (var eventArgs in advertisements)
+                foreach(var eventArgs in advertisements)
                 {
                     // Check if there are any manufacturer-specific sections.
                     // If there is, print the raw data of the first manufacturer section (if there are multiple).
                     string manufacturerDataString = "";
                     var manufacturerSections = eventArgs.Advertisement.ManufacturerData;
-                    if (manufacturerSections.Count > 0)
+                    if(manufacturerSections.Count > 0)
                     {
                         var manufacturerData = manufacturerSections[0];
                         var data = new byte[manufacturerData.Data.Length];
-                        using (var reader = DataReader.FromBuffer(manufacturerData.Data))
-                        {
+                        using(var reader = DataReader.FromBuffer(manufacturerData.Data))
                             reader.ReadBytes(data);
-                        }
                         // Print the company ID + the raw data in hex format.
                         manufacturerDataString = string.Format("0x{0}: {1}",
                             manufacturerData.CompanyId.ToString("X"),
                             BitConverter.ToString(data));
                     }
-                    eventMessage += string.Format("\n[{0}] [{1}]: Rssi={2}dBm, localName={3}, manufacturerData=[{4}]",
-                        eventArgs.Timestamp.ToString("hh\\:mm\\:ss\\.fff"),
-                        eventArgs.AdvertisementType.ToString(),
-                        eventArgs.RawSignalStrengthInDBm.ToString(),
-                        eventArgs.Advertisement.LocalName,
-                        manufacturerDataString);
+                    eventMessage += $"\n[{eventArgs.Timestamp.ToString("hh\\:mm\\:ss\\.fff")}] " +
+                                    $"[{eventArgs.AdvertisementType}]: " +
+                                    $"Rssi={eventArgs.RawSignalStrengthInDBm}dBm, " +
+                                    $"localName={eventArgs.Advertisement.LocalName}, " +
+                                    $"manufacturerData=[{manufacturerDataString}]";
                 }
 
-                // Store the message in a local settings indexed by this task's name so that the foreground App
-                // can display this message.
-                ApplicationData.Current.LocalSettings.Values[taskInstance.Task.Name] = eventMessage;
+                // Store the message in a local settings indexed by this task's name so that the foreground App can display this message.
+                ApplicationData.Current.LocalSettings.Values[taskInstance.Task.Name] = eventMessage; 
             }
         }
     }
@@ -114,7 +96,7 @@ namespace BackgroundTasks
 
             var details = taskInstance.TriggerDetails as BluetoothLEAdvertisementPublisherTriggerDetails;
 
-            if (details != null)
+            if(details != null)
             {
                 // If the background publisher stopped unexpectedly, an error will be available here.
                 var error = details.Error;

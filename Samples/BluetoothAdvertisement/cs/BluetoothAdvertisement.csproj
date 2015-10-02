@@ -104,11 +104,17 @@
       <Link>Properties\AssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="SampleConfiguration.cs" />
+    <Compile Include="Scenario6_ActiveAggregatingWatcher.xaml.cs">
+      <DependentUpon>Scenario6_ActiveAggregatingWatcher.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Scenario1_Watcher.xaml.cs">
       <DependentUpon>Scenario1_Watcher.xaml</DependentUpon>
     </Compile>
     <Compile Include="Scenario2_Publisher.xaml.cs">
       <DependentUpon>Scenario2_Publisher.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Scenario5_AggregatingWatcher.xaml.cs">
+      <DependentUpon>Scenario5_AggregatingWatcher.xaml</DependentUpon>
     </Compile>
     <Compile Include="Scenario3_BackgroundWatcher.xaml.cs">
       <DependentUpon>Scenario3_BackgroundWatcher.xaml</DependentUpon>
@@ -133,11 +139,19 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="Scenario6_ActiveAggregatingWatcher.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="Scenario1_Watcher.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Scenario2_Publisher.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Scenario5_AggregatingWatcher.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -162,9 +176,6 @@
     <Content Include="..\..\..\SharedContent\media\microsoft-sdk.png">
       <Link>Assets\microsoft-sdk.png</Link>
     </Content>
-    <Content Include="..\..\..\SharedContent\media\smalltile-sdk.png">
-      <Link>Assets\smallTile-sdk.png</Link>
-    </Content>
     <Content Include="..\..\..\SharedContent\media\splash-sdk.png">
       <Link>Assets\splash-sdk.png</Link>
     </Content>
@@ -180,11 +191,16 @@
     <Content Include="..\..\..\SharedContent\media\windows-sdk.png">
       <Link>Assets\windows-sdk.png</Link>
     </Content>
+    <Content Include="smalltile-sdk.scale-100.png" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="Tasks\Tasks.csproj">
+    <ProjectReference Include="..\..\..\..\Hackathon-Beacons\BeaconTracker\BeaconTracker\BeaconTracker.csproj">
+      <Project>{84ACBC55-AD10-4A36-927B-19E58AA3C712}</Project>
+      <Name>BeaconTracker</Name>
+    </ProjectReference>
+    <ProjectReference Include="tasks\tasks.csproj">
       <Project>{13331b5b-97d7-4290-a230-67baeae415c5}</Project>
-      <Name>Tasks</Name>
+      <Name>tasks</Name>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">

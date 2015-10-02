@@ -1,22 +1,19 @@
-//*********************************************************
-//
-// Copyright (c) Microsoft. All rights reserved.
-// This code is licensed under the MIT License (MIT).
-// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
-// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
-// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
-//
-//*********************************************************
-
 using System;
-using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+using System.Threading;
+
+using Windows.ApplicationModel;
+using Windows.Devices.Bluetooth.Advertisement;
+using Windows.Foundation;
 using Windows.Storage.Streams;
+using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
 
-using Windows.Devices.Bluetooth.Advertisement;
+using BeaconTracker;
+using BeaconTracker.Models;
 
 using SDKTemplate;
 
@@ -25,11 +22,12 @@ namespace BluetoothAdvertisement
     /// <summary>
     /// An empty page that can be used on its own or navigated to within a Frame.
     /// </summary>
-    public sealed partial class Scenario1_Watcher : Page
+    public sealed partial class Scenario6_ActiveAggregatingWatcher : Page
     {
+        private readonly Tracker _tracker;
         // The Bluetooth LE advertisement watcher class is used to control and customize Bluetooth LE scanning.
-        private BluetoothLEAdvertisementWatcher watcher;
-
+        private readonly BluetoothLEAdvertisementWatcher watcher;
+        private Timer _timer;
         // A pointer back to the main page is required to display status messages.
         private MainPage rootPage;
 
@@ -37,9 +35,12 @@ namespace BluetoothAdvertisement
         /// Initializes the singleton application object.  This is the first line of authored code
         /// executed, and as such is the logical equivalent of main() or WinMain().
         /// </summary>
-        public Scenario1_Watcher()
+        public Scenario6_ActiveAggregatingWatcher()
         {
-            this.InitializeComponent();
+            InitializeComponent();
+
+            _tracker = new Tracker();
+            _timer = new Timer(PrintUpdatedBeaconInfo, _tracker, 0, 30000);
 
             // Create and initialize a new watcher instance.
             watcher = new BluetoothLEAdvertisementWatcher();
@@ -65,7 +66,7 @@ namespace BluetoothAdvertisement
 
             // Then, set the company ID for the manufacturer data. Here we picked an unused value: 0xFFFE
             manufacturerData.CompanyId = 349; //Estimote 349 (Use for stamps) 
-            manufacturerData.CompanyId = 76;  //Apple 76 (Use for the old Estimote iBeacon compatible beacons)
+            manufacturerData.CompanyId = 76; //Apple 76 (Use for the old Estimote iBeacon compatible beacons)
 
             // Finally set the data payload within the manufacturer-specific section
             // Here, use a 16-bit UUID: 0x1234 -> {0x34, 0x12} (little-endian)
@@ -99,6 +100,17 @@ namespace BluetoothAdvertisement
             // the advertisement received is returned in the Received event
 
             // End of watcher configuration. There is no need to comment out any code beyond this point.
+        }
+
+        private void PrintUpdatedBeaconInfo(object state)
+        {
+            var readings = ((Tracker)state)?.GetAllReadings().ToImmutableList();
+            var updatedInfo = string.Join(Environment.NewLine, readings);
+            var asyncTask = Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                () => ReceivedAdvertisementListBox.Items?.Add(updatedInfo));
+            while(asyncTask.Status != AsyncStatus.Completed)
+            {
+            }
         }
 
         /// <summary>
@@ -159,7 +171,7 @@ namespace BluetoothAdvertisement
         /// </summary>
         /// <param name="sender">The source of the suspend request.</param>
         /// <param name="e">Details about the suspend request.</param>
-        private void App_Suspending(object sender, Windows.ApplicationModel.SuspendingEventArgs e)
+        private void App_Suspending(object sender, SuspendingEventArgs e)
         {
             // Make sure to stop the watcher on suspend.
             watcher.Stop();
@@ -212,7 +224,8 @@ namespace BluetoothAdvertisement
         /// </summary>
         /// <param name="watcher">Instance of watcher that triggered the event.</param>
         /// <param name="eventArgs">Event data containing information about the advertisement event.</param>
-        private async void OnAdvertisementReceived(BluetoothLEAdvertisementWatcher watcher, BluetoothLEAdvertisementReceivedEventArgs eventArgs)
+        private async void OnAdvertisementReceived(BluetoothLEAdvertisementWatcher watcher,
+                                                   BluetoothLEAdvertisementReceivedEventArgs eventArgs)
         {
             // We can obtain various information about the advertisement we just received by accessing 
             // the properties of the EventArgs class
@@ -233,30 +246,41 @@ namespace BluetoothAdvertisement
             // If there is, print the raw data of the first manufacturer section (if there are multiple).
             string manufacturerDataString = "";
             var manufacturerSections = eventArgs.Advertisement.ManufacturerData;
-            if (manufacturerSections.Count > 0)
+            if(manufacturerSections.Count > 0)
             {
                 // Only print the first one of the list
                 var manufacturerData = manufacturerSections[0];
                 var data = new byte[manufacturerData.Data.Length];
-                using (var reader = DataReader.FromBuffer(manufacturerData.Data))
-                {
+                using(var reader = DataReader.FromBuffer(manufacturerData.Data))
                     reader.ReadBytes(data);
-                }
                 // Print the company ID + the raw data in hex format
                 manufacturerDataString = string.Format("0x{0}: {1}",
                     manufacturerData.CompanyId,
                     BitConverter.ToString(data));
             }
 
+            var eventMessage = $"[{timestamp.ToString("hh\\:mm\\:ss\\.fff")}]: " +
+                               $"type={advertisementType}, " +
+                               $"rssi={rssi}, " +
+                               $"name={localName}, " +
+                               $"manufacturerData=[{manufacturerDataString}]";
+
+            _tracker.AddBeaconReading(new BeaconReading
+                                      {
+                                          Beacon = new Beacon(eventArgs.BluetoothAddress.ToString())
+                                                   {
+                                                       ManufacturerCode = manufacturerSections[0].CompanyId.ToString()
+                                                   },
+                                          MeasurementTime = eventArgs.Timestamp,
+                                          RawSignalStrengthInDBm = eventArgs.RawSignalStrengthInDBm,
+                                          RawData = manufacturerDataString,
+                                          EventMessage = eventMessage
+                                      });
+
             // Serialize UI update to the main UI thread
-            await this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
-            {
-                // Display these information on the list
-                ReceivedAdvertisementListBox.Items.Add(
-                    $"[{timestamp.ToString("hh\\:mm\\:ss\\.fff")}]: " +
-                    $"rssi={rssi.ToString()}, " +
-                    $"name={localName},");
-            });
+            await
+                Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                    () => ReceivedAdvertisementListBox.Items?.Add(eventMessage));
         }
 
         /// <summary>
@@ -264,13 +288,13 @@ namespace BluetoothAdvertisement
         /// </summary>
         /// <param name="watcher">Instance of watcher that triggered the event.</param>
         /// <param name="eventArgs">Event data containing information about why the watcher stopped or aborted.</param>
-        private async void OnAdvertisementWatcherStopped(BluetoothLEAdvertisementWatcher watcher, BluetoothLEAdvertisementWatcherStoppedEventArgs eventArgs)
+        private async void OnAdvertisementWatcherStopped(BluetoothLEAdvertisementWatcher watcher,
+                                                         BluetoothLEAdvertisementWatcherStoppedEventArgs eventArgs)
         {
             // Notify the user that the watcher was stopped
-            await this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
-            {
-                rootPage.NotifyUser(string.Format("Watcher stopped or aborted: {0}", eventArgs.Error.ToString()), NotifyType.StatusMessage);
-            });
+            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                () => rootPage.NotifyUser($"Watcher stopped or aborted: {eventArgs.Error}",
+                    NotifyType.StatusMessage));
         }
     }
 }
